@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { BudgetProvider } from './components/BudgetContext';
+import { SupabaseBudgetProvider, useBudget } from './components/SupabaseBudgetContext';
 import LandingPage from './components/LandingPage';
 import Dashboard from './components/Dashboard';
 import AddExpense from './components/AddExpense';
@@ -15,25 +15,26 @@ import Feedback from './components/Feedback';
 import AIAdvisor from './components/AIAdvisor';
 import DataBackup from './components/DataBackup';
 import Navigation from './components/Navigation';
-import GoogleAuthHandler from './components/GoogleAuthHandler';
+import AuthCallback from './components/AuthCallback';
 import { Toaster } from 'sonner@2.0.3';
 
-export default function App() {
+function AppContent() {
+  const { isAuthenticated, signOut, loading } = useBudget();
   const [currentPage, setCurrentPage] = useState<string>('landing');
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
-  // Check authentication status
   useEffect(() => {
-    const authStatus = localStorage.getItem('isAuthenticated');
-    if (authStatus === 'true') {
-      setIsAuthenticated(true);
+    if (isAuthenticated) {
       setCurrentPage('dashboard');
+    } else {
+      setCurrentPage('landing');
     }
-    
-    // Handle hash navigation for Add Expense button
+  }, [isAuthenticated]);
+
+  // Handle hash navigation for Add Expense button
+  useEffect(() => {
     const handleHashChange = () => {
-      if (window.location.hash === '#add-expense') {
+      if (window.location.hash === '#add-expense' && isAuthenticated) {
         setCurrentPage('add-expense');
         window.location.hash = '';
       }
@@ -43,19 +44,7 @@ export default function App() {
     handleHashChange(); // Check on mount
     
     return () => window.removeEventListener('hashchange', handleHashChange);
-  }, []);
-
-  const handleLogin = () => {
-    setIsAuthenticated(true);
-    localStorage.setItem('isAuthenticated', 'true');
-    setCurrentPage('dashboard');
-  };
-
-  const handleLogout = () => {
-    setIsAuthenticated(false);
-    localStorage.removeItem('isAuthenticated');
-    setCurrentPage('landing');
-  };
+  }, [isAuthenticated]);
 
   const handleCategorySelect = (category: string) => {
     setSelectedCategory(category);
@@ -63,13 +52,18 @@ export default function App() {
   };
 
   const renderPage = () => {
+    // Handle auth callback
+    if (window.location.pathname === '/auth/callback') {
+      return <AuthCallback />;
+    }
+
     if (!isAuthenticated && currentPage !== 'landing') {
-      return <LandingPage onLogin={handleLogin} />;
+      return <LandingPage onLogin={() => {}} />;
     }
 
     switch (currentPage) {
       case 'landing':
-        return <LandingPage onLogin={handleLogin} />;
+        return <LandingPage onLogin={() => {}} />;
       case 'dashboard':
         return <Dashboard />;
       case 'add-expense':
@@ -101,9 +95,19 @@ export default function App() {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-black text-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-yellow-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-yellow-500">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <BudgetProvider>
-      <GoogleAuthHandler />
+    <>
       <Toaster 
         theme="dark" 
         position="top-center"
@@ -118,9 +122,21 @@ export default function App() {
       <div className="min-h-screen bg-black text-gray-50">
         {renderPage()}
         {isAuthenticated && currentPage !== 'landing' && (
-          <Navigation currentPage={currentPage} onNavigate={setCurrentPage} onLogout={handleLogout} />
+          <Navigation 
+            currentPage={currentPage} 
+            onNavigate={setCurrentPage} 
+            onLogout={signOut} 
+          />
         )}
       </div>
-    </BudgetProvider>
+    </>
+  );
+}
+
+export default function App() {
+  return (
+    <SupabaseBudgetProvider>
+      <AppContent />
+    </SupabaseBudgetProvider>
   );
 }

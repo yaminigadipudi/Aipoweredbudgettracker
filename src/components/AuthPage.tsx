@@ -4,6 +4,7 @@ import { Mail, Lock, User, ArrowLeft, Chrome } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
+import { authService } from '../services/authService';
 
 interface AuthPageProps {
   onLogin: () => void;
@@ -15,13 +16,42 @@ export default function AuthPage({ onLogin, onBack }: AuthPageProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Store user name for personalized greeting
-    const userName = isLogin ? email.split('@')[0] : name;
-    localStorage.setItem('userName', userName);
-    onLogin();
+    setLoading(true);
+    
+    try {
+      if (isLogin) {
+        const { user } = await authService.signIn(email, password);
+        if (user) {
+          localStorage.setItem('userName', user.email?.split('@')[0] || 'User');
+          onLogin();
+        }
+      } else {
+        const { user } = await authService.signUp(email, password, name);
+        if (user) {
+          localStorage.setItem('userName', name);
+          onLogin();
+        }
+      }
+    } catch (error) {
+      console.error('Auth error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleAuth = async () => {
+    setLoading(true);
+    try {
+      await authService.signInWithGoogle();
+      // Google auth will redirect, so we don't call onLogin here
+    } catch (error) {
+      console.error('Google auth error:', error);
+      setLoading(false);
+    }
   };
 
   return (
@@ -128,9 +158,10 @@ export default function AuthPage({ onLogin, onBack }: AuthPageProps) {
 
             <Button
               type="submit"
-              className="w-full bg-yellow-500 text-black hover:bg-yellow-400 shadow-[0_0_30px_rgba(234,179,8,0.4)]"
+              disabled={loading}
+              className="w-full bg-yellow-500 text-black hover:bg-yellow-400 shadow-[0_0_30px_rgba(234,179,8,0.4)] disabled:opacity-50"
             >
-              {isLogin ? 'Login' : 'Sign Up'}
+              {loading ? 'Loading...' : (isLogin ? 'Login' : 'Sign Up')}
             </Button>
 
             <div className="relative my-6">
@@ -145,11 +176,12 @@ export default function AuthPage({ onLogin, onBack }: AuthPageProps) {
             <Button
               type="button"
               variant="outline"
-              onClick={onLogin}
-              className="w-full border-yellow-500 text-yellow-500 hover:bg-yellow-500/10 gap-2"
+              onClick={handleGoogleAuth}
+              disabled={loading}
+              className="w-full border-yellow-500 text-yellow-500 hover:bg-yellow-500/10 gap-2 disabled:opacity-50"
             >
               <Chrome className="w-4 h-4" />
-              Continue with Google
+              {loading ? 'Loading...' : 'Continue with Google'}
             </Button>
           </form>
 

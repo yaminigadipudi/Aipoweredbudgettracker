@@ -1,6 +1,6 @@
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
 import { useBudget } from './BudgetContext';
-import { useState, useEffect, useRef } from 'react';
 import { Bot, Send, Sparkles } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -27,12 +27,11 @@ export default function AIAdvisor() {
   }, [messages]);
 
   useEffect(() => {
-    // Initial AI greeting with insights
     const totalSpent = getTotalSpent();
     const savings = monthlyBudget - totalSpent;
 
     const categoryTotals: { [key: string]: number } = {};
-    expenses.forEach((exp) => {
+    expenses.forEach((exp: any) => {
       const expDate = new Date(exp.date);
       const now = new Date();
       if (expDate.getMonth() === now.getMonth() && expDate.getFullYear() === now.getFullYear()) {
@@ -64,7 +63,6 @@ export default function AIAdvisor() {
         greeting += `🎉 Great job! You still have ₹${savings.toLocaleString()} left in your budget.\n\n`;
       }
 
-      // Check for trends
       const foodSpending = getCategorySpending('Food');
       if (foodSpending > monthlyBudget * 0.2) {
         greeting += `💡 Tip: Your food spending is high. Consider meal planning to save ₹${(foodSpending * 0.2).toFixed(0)} per month.\n\n`;
@@ -83,14 +81,13 @@ export default function AIAdvisor() {
     ]);
   }, []);
 
-  const generateAIResponse = (userMessage: string): string => {
+  const getOriginalResponse = (userMessage: string): string | null => {
     const lowerMessage = userMessage.toLowerCase();
     const totalSpent = getTotalSpent();
     const savings = monthlyBudget - totalSpent;
 
-    // Calculate category spending
     const categoryTotals: { [key: string]: number } = {};
-    expenses.forEach((exp) => {
+    expenses.forEach((exp: any) => {
       const expDate = new Date(exp.date);
       const now = new Date();
       if (expDate.getMonth() === now.getMonth() && expDate.getFullYear() === now.getFullYear()) {
@@ -98,7 +95,6 @@ export default function AIAdvisor() {
       }
     });
 
-    // Spending summary
     if (lowerMessage.includes('spending') || lowerMessage.includes('spent') || lowerMessage.includes('summary')) {
       let response = `Here's your spending summary:\n\n`;
       response += `💰 Total spent: ₹${totalSpent.toLocaleString()}\n`;
@@ -118,7 +114,6 @@ export default function AIAdvisor() {
       return response;
     }
 
-    // Save money tips
     if (lowerMessage.includes('save') || lowerMessage.includes('tips') || lowerMessage.includes('reduce')) {
       const foodSpending = getCategorySpending('Food');
       const travelSpending = getCategorySpending('Travel');
@@ -147,7 +142,6 @@ export default function AIAdvisor() {
       return response;
     }
 
-    // Budget advice
     if (lowerMessage.includes('budget') || lowerMessage.includes('plan')) {
       let response = `Budget Planning Advice:\n\n`;
       response += `📊 Recommended allocation:\n`;
@@ -160,7 +154,6 @@ export default function AIAdvisor() {
       return response;
     }
 
-    // Category specific
     const categories = ['food', 'travel', 'shopping', 'entertainment', 'education'];
     for (const cat of categories) {
       if (lowerMessage.includes(cat)) {
@@ -171,25 +164,101 @@ export default function AIAdvisor() {
         return `${capCategory} Spending Analysis:\n\n` +
                `💰 Total: ₹${spending.toLocaleString()}\n` +
                `📊 ${percentage.toFixed(1)}% of your budget\n\n` +
-               (percentage > 25 
-                 ? `⚠️ This seems high! Try to reduce by 15-20%.\n` 
+               (percentage > 25
+                 ? `⚠️ This seems high! Try to reduce by 15-20%.\n`
                  : `✅ You're doing well in this category!`);
       }
     }
 
-    // Default helpful response
-    return `I'm here to help with your finances! You can ask me about:\n\n` +
-           `• Your spending summary\n` +
-           `• Money-saving tips\n` +
-           `• Budget planning advice\n` +
-           `• Specific category spending (food, travel, etc.)\n\n` +
-           `What would you like to know?`;
+    return null;
+  };
+
+  const generateAIResponse = async (userMessage: string): Promise<string> => {
+    // First check financial responses
+    const originalResponse = getOriginalResponse(userMessage);
+    if (originalResponse) {
+      return originalResponse;
+    }
+
+    // Smart bot responses without API
+    const lower = userMessage.toLowerCase();
+    const totalSpent = getTotalSpent();
+    const savings = monthlyBudget - totalSpent;
+
+    // Greetings
+    if (lower.includes('hello') || lower.includes('hi') || lower.includes('hey')) {
+      return `Hello! I'm BudgetBuddy, your smart financial assistant. You have ₹${savings.toLocaleString()} remaining in your ₹${monthlyBudget.toLocaleString()} budget. How can I help you today? 👋`;
+    }
+
+    // Fun responses
+    if (lower.includes('joke') || lower.includes('funny') || lower.includes('laugh')) {
+      const jokes = [
+        "Why don't budgets ever get tired? Because they're always balanced! 😄",
+        "What did the penny say to the dollar? You're worth 100 of me! 😂",
+        "Why did the credit card go to therapy? It had too many issues! 😆",
+        "What's a budget's favorite music? Heavy metal... because it's all about balance! 🎵"
+      ];
+      const randomJoke = jokes[Math.floor(Math.random() * jokes.length)];
+      return `${randomJoke} Speaking of balance, you have ₹${savings.toLocaleString()} left to spend wisely!`;
+    }
+
+    // Weather
+    if (lower.includes('weather') || lower.includes('rain') || lower.includes('sunny')) {
+      return `I can't check the weather, but I can tell you your financial forecast looks bright with ₹${savings.toLocaleString()} remaining! ☀️ Whether it's sunny or rainy, your budget is looking good!`;
+    }
+
+    // Food/Cooking
+    if (lower.includes('recipe') || lower.includes('cook') || lower.includes('food')) {
+      return `Here's my favorite money recipe: 1 cup of smart spending + 2 tablespoons of saving + a pinch of budgeting wisdom = financial success! 🍳 You have ₹${savings.toLocaleString()} for ingredients. Cooking at home saves money too!`;
+    }
+
+    // Time
+    if (lower.includes('time') || lower.includes('date')) {
+      return `It's ${new Date().toLocaleTimeString()} on ${new Date().toLocaleDateString()} - perfect time to check your finances! You have ₹${savings.toLocaleString()} remaining in your budget. ⏰`;
+    }
+
+    // Technology
+    if (lower.includes('technology') || lower.includes('computer') || lower.includes('app')) {
+      return `Technology is amazing for managing money! You're using this smart budget app, and it shows you have ₹${savings.toLocaleString()} remaining. Keep using tech to stay financially smart! 📱`;
+    }
+
+    // Travel
+    if (lower.includes('travel') || lower.includes('vacation') || lower.includes('trip')) {
+      return `Travel is wonderful! With ₹${savings.toLocaleString()} remaining in your budget, you could start planning your next adventure. Remember to budget for travel expenses! ✈️`;
+    }
+
+    // Music
+    if (lower.includes('music') || lower.includes('song')) {
+      return `Music makes life better! My favorite song is 'Money (That's What I Want)' but remember, the best things in life are free! You have ₹${savings.toLocaleString()} to enjoy both free and paid entertainment. 🎵`;
+    }
+
+    // Movies
+    if (lower.includes('movie') || lower.includes('film')) {
+      return `I love movies! 'The Pursuit of Happyness' is great for financial motivation. With ₹${savings.toLocaleString()} remaining, you can afford some movie tickets or streaming subscriptions! 🎬`;
+    }
+
+    // Work/Career
+    if (lower.includes('work') || lower.includes('job') || lower.includes('career')) {
+      return `Work-life balance is important! Make sure you're budgeting for both necessities and enjoyment. Your current budget shows ₹${savings.toLocaleString()} remaining - that's good financial management! 💼`;
+    }
+
+    // Health
+    if (lower.includes('health') || lower.includes('exercise') || lower.includes('fitness')) {
+      return `Health is wealth! Many exercises are free - walking, running, home workouts. You have ₹${savings.toLocaleString()} remaining, so you could budget for a gym membership or healthy food! 🏃‍♂️`;
+    }
+
+    // Education
+    if (lower.includes('learn') || lower.includes('study') || lower.includes('education')) {
+      return `Learning is investing in yourself! There are many free educational resources online. With ₹${savings.toLocaleString()} remaining, you could also budget for courses or books! 📚`;
+    }
+
+    // Default intelligent response
+    return `That's an interesting question about "${userMessage}"! I'm a smart financial assistant, and while I work on understanding everything, I can tell you that you currently have ₹${savings.toLocaleString()} remaining out of your ₹${monthlyBudget.toLocaleString()} monthly budget. Feel free to ask me anything - I'll do my best to help! 🤖`;
   };
 
   const handleSendMessage = () => {
     if (!inputMessage.trim()) return;
 
-    // Add user message
     const userMessage: Message = {
       id: Date.now().toString(),
       text: inputMessage,
@@ -199,11 +268,11 @@ export default function AIAdvisor() {
 
     setMessages((prev) => [...prev, userMessage]);
 
-    // Generate AI response
-    setTimeout(() => {
+    setTimeout(async () => {
+      const responseText = await generateAIResponse(inputMessage);
       const aiResponse: Message = {
         id: (Date.now() + 1).toString(),
-        text: generateAIResponse(inputMessage),
+        text: responseText,
         sender: 'ai',
         timestamp: new Date(),
       };
@@ -222,8 +291,7 @@ export default function AIAdvisor() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-neutral-950 to-black pb-24 px-4 pt-8">
-      <div className="max-w-4xl mx-auto h-[calc(100vh-12rem)]  flex flex-col">
-        {/* Header */}
+      <div className="max-w-4xl mx-auto h-[calc(100vh-12rem)] flex flex-col">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -240,7 +308,6 @@ export default function AIAdvisor() {
           </div>
         </motion.div>
 
-        {/* Messages Container */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -279,7 +346,6 @@ export default function AIAdvisor() {
           </div>
         </motion.div>
 
-        {/* Input Area */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Gemini API Test</title>
+</head>
+<body>
+    <h1>Gemini API Test</h1>
+    <input type="text" id="apiKey" placeholder="Enter your Gemini API key" style="width: 400px;">
+    <button onclick="testAPI()">Test API</button>
+    <div id="result"></div>
+
+    <script type="module">
+        import { GoogleGenerativeAI } from 'https://esm.run/@google/generative-ai';
+        
+        window.testAPI = async function() {
+            const apiKey = document.getElementById('apiKey').value;
+            const resultDiv = document.getElementById('result');
+            
+            if (!apiKey) {
+                resultDiv.innerHTML = '<p style="color: red;">Please enter API key</p>';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<p>Testing API...</p>';
+            
+            try {
+                const genAI = new GoogleGenerativeAI(apiKey);
+                // Try different models
+                const models = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro', 'models/gemini-1.5-flash'];
+                let workingModel = null;
+                
+                for (const modelName of models) {
+                    try {
+                        const model = genAI.getGenerativeModel({ model: modelName });
+                        const result = await model.generateContent('Say hello');
+                        const response = await result.response;
+                        const text = response.text();
+                        
+                        resultDiv.innerHTML = `<p style="color: green;">✅ API Works with model: ${modelName}</p><p>Response: ${text}</p>`;
+                        return;
+                    } catch (modelError) {
+                        console.log(`Model ${modelName} failed:`, modelError.message);
+                    }
+                }
+                
+                throw new Error('All models failed - API key may be invalid');
+                
+
+            } catch (error) {
+                resultDiv.innerHTML = `<p style="color: red;">❌ API Failed: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>
