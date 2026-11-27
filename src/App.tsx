@@ -95,17 +95,6 @@ function AppContent() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-black text-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-yellow-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-yellow-500 font-medium">Connecting to cloud database...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <>
       <Toaster 

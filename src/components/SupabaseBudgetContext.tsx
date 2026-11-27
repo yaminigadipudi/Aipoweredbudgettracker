@@ -118,7 +118,7 @@ export const useBudget = () => {
 export const SupabaseBudgetProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<any>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   
   // Data states
   const [monthlyBudget, setMonthlyBudgetState] = useState(0);
