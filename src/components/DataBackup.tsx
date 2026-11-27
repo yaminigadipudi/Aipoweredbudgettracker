@@ -13,7 +13,7 @@ interface TransactionPhoto {
 }
 
 export default function DataBackup() {
-  const { expenses, subscriptions, monthlyBudget, getTotalSpent } = useBudget();
+  const { expenses, subscriptions, monthlyBudget, getTotalSpent, isAuthenticated, user } = useBudget();
   const [transactionPhotos, setTransactionPhotos] = useState<TransactionPhoto[]>([]);
   const [selectedPhoto, setSelectedPhoto] = useState<TransactionPhoto | null>(null);
 
@@ -146,7 +146,8 @@ Next Payment: ${new Date(sub.nextPaymentDate).toLocaleDateString()}
     toast.success('Photo deleted');
   };
 
-  const cloudSyncStatus = 'Not connected';
+  const isCloudConnected = isAuthenticated;
+  const cloudSyncStatus = isCloudConnected ? 'Connected to Supabase' : 'Not connected';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-neutral-950 to-black pb-24 px-4 pt-8">
@@ -169,16 +170,21 @@ Next Payment: ${new Date(sub.nextPaymentDate).toLocaleDateString()}
           className="bg-black border border-yellow-500/30 rounded-lg p-6 mb-6"
         >
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 rounded-full bg-black border border-yellow-500 flex items-center justify-center">
-              <Cloud className="w-6 h-6 text-yellow-500" />
+            <div className={`w-12 h-12 rounded-full bg-black border ${isCloudConnected ? 'border-green-500 shadow-[0_0_15px_rgba(34,197,94,0.3)]' : 'border-yellow-500'} flex items-center justify-center`}>
+              <Cloud className={`w-6 h-6 ${isCloudConnected ? 'text-green-500' : 'text-yellow-500'}`} />
             </div>
             <div>
               <p className="text-yellow-500">Cloud Sync Status</p>
-              <p className="text-gray-50">{cloudSyncStatus}</p>
+              <div className="flex items-center gap-2">
+                <span className={`inline-block w-2.5 h-2.5 rounded-full ${isCloudConnected ? 'bg-green-500 animate-pulse' : 'bg-yellow-500'}`} />
+                <p className="text-gray-50 font-medium">{cloudSyncStatus}</p>
+              </div>
             </div>
           </div>
           <p className="text-gray-400">
-            Your data is currently stored locally. Connect to Supabase for cloud backup and sync across devices.
+            {isCloudConnected
+              ? `Your data is safely synced to Supabase Cloud (${user?.email || 'Logged In'}). Changes sync in real-time across all your devices.`
+              : 'Your data is currently stored locally. Sign in with Supabase to enable cloud backup and sync across devices.'}
           </p>
         </motion.div>
 
@@ -330,10 +336,12 @@ Next Payment: ${new Date(sub.nextPaymentDate).toLocaleDateString()}
             <div className="flex items-center justify-between p-4 bg-neutral-950 border border-yellow-500/10 rounded-lg">
               <div>
                 <p className="text-gray-50">Cloud Sync</p>
-                <p className="text-gray-400">Sync across devices</p>
+                <p className="text-gray-400">
+                  {isCloudConnected ? 'Active: Syncing across devices' : 'Disabled: Connect to Supabase'}
+                </p>
               </div>
-              <div className="w-12 h-6 rounded-full bg-neutral-700 flex items-center px-1">
-                <div className="w-5 h-5 bg-black rounded-full" />
+              <div className={`w-12 h-6 rounded-full ${isCloudConnected ? 'bg-yellow-500 justify-end' : 'bg-neutral-700 justify-start'} flex items-center px-1 transition-all`}>
+                <div className={`w-4 h-4 ${isCloudConnected ? 'bg-black' : 'bg-neutral-400'} rounded-full`} />
               </div>
             </div>
           </div>
@@ -341,7 +349,9 @@ Next Payment: ${new Date(sub.nextPaymentDate).toLocaleDateString()}
           <div className="mt-4 p-4 bg-neutral-950 border border-yellow-500/10 rounded-lg">
             <p className="text-yellow-500 mb-2">💡 Pro Tip</p>
             <p className="text-gray-400">
-              Connect to Supabase to enable cloud sync and access your data from any device.
+              {isCloudConnected
+                ? 'Your account is actively syncing with Supabase Cloud! Any expenses, caps, or subscriptions you add are automatically preserved in the cloud.'
+                : 'Sign in to your account to enable automatic cloud sync and access your budget tracker from any device.'}
             </p>
           </div>
         </motion.div>
