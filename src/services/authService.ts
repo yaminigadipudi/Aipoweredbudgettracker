@@ -96,16 +96,31 @@ export const authService = {
       if (!user) return { user: null, profile: null }
 
       // Get user profile
-      const { data: profile, error } = await supabase
+      let { data: profile } = await supabase
         .from('users')
         .select('*')
         .eq('id', user.id)
-        .single()
+        .maybeSingle()
 
-      if (error) throw error
+      if (!profile) {
+        // Auto-create profile row if it doesn't exist yet
+        const defaultName = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'User'
+        const { data: newProfile } = await supabase
+          .from('users')
+          .upsert({
+            id: user.id,
+            email: user.email || '',
+            name: defaultName,
+            monthly_budget: 0
+          })
+          .select()
+          .maybeSingle()
+        profile = newProfile || { id: user.id, email: user.email, name: defaultName, monthly_budget: 0 }
+      }
 
       return { user, profile }
     } catch (error: any) {
+      console.warn('Error fetching profile:', error)
       return { user: null, profile: null }
     }
   },

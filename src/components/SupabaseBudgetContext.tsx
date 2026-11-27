@@ -131,45 +131,70 @@ export const SupabaseBudgetProvider = ({ children }: { children: ReactNode }) =>
 
   // Initialize auth state
   useEffect(() => {
+    let isMounted = true;
+
+    // Safety timeout: Never stay stuck in loading for more than 3 seconds
+    const timeoutId = setTimeout(() => {
+      if (isMounted) {
+        setLoading(false);
+      }
+    }, 3000);
+
     const initAuth = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         
-        if (session?.user) {
+        if (session?.user && isMounted) {
+          setUser(session.user);
+          setIsAuthenticated(true);
+          
           const { profile } = await authService.getCurrentUser();
-          if (profile) {
-            setUser(session.user);
-            setIsAuthenticated(true);
+          if (profile && isMounted) {
             setMonthlyBudgetState(profile.monthly_budget || 0);
-            await loadUserData();
+          }
+          if (isMounted) {
+            loadUserData().catch(console.error);
           }
         }
       } catch (error) {
         console.error('Init auth error:', error);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+          clearTimeout(timeoutId);
+        }
       }
-      setLoading(false);
     };
 
     initAuth();
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!isMounted) return;
+      
       if (session?.user) {
+        setUser(session.user);
+        setIsAuthenticated(true);
         const { profile } = await authService.getCurrentUser();
-        if (profile) {
-          setUser(session.user);
-          setIsAuthenticated(true);
+        if (profile && isMounted) {
           setMonthlyBudgetState(profile.monthly_budget || 0);
-          await loadUserData();
+        }
+        if (isMounted) {
+          loadUserData().catch(console.error);
         }
       } else {
         setUser(null);
         setIsAuthenticated(false);
         clearData();
       }
+      setLoading(false);
     });
 
-    return () => subscription?.unsubscribe();
+    return () => {
+      isMounted = false;
+      clearTimeout(timeoutId);
+      subscription?.unsubscribe();
+    };
   }, []);
 
   // Load all user data
